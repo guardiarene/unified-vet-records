@@ -23,6 +23,7 @@ import tfg.psygcv.medical.visit.entity.Visit;
 import tfg.psygcv.medical.visit.entity.VisitType;
 import tfg.psygcv.medical.visit.mapper.VisitMapper;
 import tfg.psygcv.medical.visit.service.VisitService;
+import tfg.psygcv.shared.authorization.ResourceAuthorizationService;
 import tfg.psygcv.shared.controller.BaseController;
 
 @RequiredArgsConstructor
@@ -32,11 +33,15 @@ public class VisitController extends BaseController {
 
   private final VisitService visitService;
   private final MedicalRecordService medicalRecordService;
+  private final ResourceAuthorizationService resourceAuthorizationService;
 
   @GetMapping("/{id}")
-  public String showVisitDetails(@PathVariable Long id, Model model) {
+  public String showVisitDetails(@PathVariable Long id, Model model,
+                                 Authentication authentication) {
     VisitResponse visit = VisitMapper.toResponse(visitService.findCompleteById(id));
     model.addAttribute("visit", visit);
+    model.addAttribute(
+        "canEditVisit", resourceAuthorizationService.canModifyVisit(authentication, id));
     return "visits/details";
   }
 

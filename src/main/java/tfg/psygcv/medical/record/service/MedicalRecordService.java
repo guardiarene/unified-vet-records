@@ -14,9 +14,10 @@ public interface MedicalRecordService {
 
   List<MedicalRecord> findByVeterinarian(Long veterinarianId);
 
+  @PreAuthorize("hasRole('VETERINARIAN')")
   MedicalRecord save(CreateMedicalRecordCommand command, Long veterinarianId);
 
-  @PreAuthorize("@authz.canAccessMedicalRecord(authentication, #id)")
+  @PreAuthorize("@authz.canModifyMedicalRecord(authentication, #id)")
   MedicalRecord update(Long id, UpdateMedicalRecordCommand command, Long veterinarianId);
 
   Anamnesis computeCurrentAnamnesis(MedicalRecord medicalRecord);
