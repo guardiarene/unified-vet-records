@@ -73,3 +73,4 @@ Service logic with Mockito. Controllers with `@WebMvcTest`. Repositories with `@
   never `prod`)
 - Introduce new architectural patterns
 - Return `null` from service methods
+- Call `now()` without arguments — the current time always comes from the injected `Clock` (`LocalDate.now(clock)`)
