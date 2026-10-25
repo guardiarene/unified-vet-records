@@ -56,6 +56,8 @@ public class SecurityConfig {
                     .hasRole("VETERINARIAN")
                     .requestMatchers("/visits/**")
                     .hasAnyRole("CUSTOMER", "VETERINARIAN")
+                    .requestMatchers("/reports/diseases-treatments")
+                    .hasRole("VETERINARIAN")
                     .requestMatchers("/reports/**")
                     .hasAnyRole("RECEPTIONIST", "VETERINARIAN")
                     .requestMatchers(
