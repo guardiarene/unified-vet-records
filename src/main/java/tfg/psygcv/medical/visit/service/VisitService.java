@@ -11,9 +11,10 @@ import tfg.psygcv.medical.visit.entity.Visit;
 
 public interface VisitService {
 
+  @PreAuthorize("hasRole('VETERINARIAN')")
   Visit createVisit(Long medicalRecordId, CreateVisitCommand command, Long veterinarianId);
 
-  @PreAuthorize("@authz.canAccessVisit(authentication, #visitId)")
+  @PreAuthorize("@authz.canModifyVisit(authentication, #visitId)")
   Visit updateVisit(Long visitId, UpdateVisitCommand command, Long veterinarianId);
 
   @PreAuthorize("@authz.canAccessVisit(authentication, #visitId)")
@@ -28,6 +29,6 @@ public interface VisitService {
 
   Visit findLatestVisit(Long medicalRecordId);
 
-  @PreAuthorize("@authz.canAccessVisit(authentication, #visitId)")
+  @PreAuthorize("@authz.canModifyVisit(authentication, #visitId)")
   Long deleteVisit(Long visitId);
 }

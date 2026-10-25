@@ -159,7 +159,8 @@
                     <a class="btn btn-secondary" th:href="@{/medical-records/{id}(id=${visit.medicalRecordId})}">
                         <i aria-hidden="true" class="bi bi-arrow-left me-2"></i>Volver
                     </a>
-                    <a class="btn btn-warning" th:href="@{/visits/{id}/edit(id=${visit.id})}">
+                    <a class="btn btn-warning" th:href="@{/visits/{id}/edit(id=${visit.id})}"
+                       th:if="${canEditVisit}">
                         <i aria-hidden="true" class="bi bi-pencil me-2"></i>Editar Visita
                     </a>
                 </div>
