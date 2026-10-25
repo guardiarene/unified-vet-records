@@ -1,6 +1,7 @@
 package tfg.psygcv.medical.visit.controller;
 
 import jakarta.validation.Valid;
+import java.time.Clock;
 import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
@@ -34,6 +35,7 @@ public class VisitController extends BaseController {
   private final VisitService visitService;
   private final MedicalRecordService medicalRecordService;
   private final ResourceAuthorizationService resourceAuthorizationService;
+  private final Clock clock;
 
   @GetMapping("/{id}")
   public String showVisitDetails(@PathVariable Long id, Model model,
@@ -51,7 +53,7 @@ public class VisitController extends BaseController {
         MedicalRecordMapper.toSummary(medicalRecordService.findCompleteById(medicalRecordId));
     CreateVisitRequest visit = new CreateVisitRequest();
     visit.setMedicalRecordId(medicalRecordId);
-    visit.setDate(LocalDate.now());
+    visit.setDate(LocalDate.now(clock));
     visit.setVisitType(VisitType.CONSULTATION);
     model.addAttribute("visit", visit);
     model.addAttribute("medicalRecord", medicalRecord);

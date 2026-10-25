@@ -1,5 +1,6 @@
 package tfg.psygcv.statistics.controller;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -22,6 +23,7 @@ public class ReportController extends BaseController {
 
   private final StatisticsService statisticsService;
   private final JsonUtil jsonUtil;
+  private final Clock clock;
 
   @GetMapping("/diseases-treatments")
   public String showDiseasesTreatmentsReport(Model model) {
@@ -45,8 +47,8 @@ public class ReportController extends BaseController {
 
   @GetMapping("/appointments")
   public String showAppointmentsReport(Model model) {
-    model.addAttribute("startDate", LocalDate.now().minusMonths(1));
-    model.addAttribute("endDate", LocalDate.now());
+    model.addAttribute("startDate", LocalDate.now(clock).minusMonths(1));
+    model.addAttribute("endDate", LocalDate.now(clock));
     model.addAttribute("appointments", new LinkedHashMap<>());
     model.addAttribute("appointmentsJson", "{}");
     return "reports/appointments";
@@ -69,8 +71,8 @@ public class ReportController extends BaseController {
   }
 
   private void initializeReportModel(Model model) {
-    model.addAttribute("startDate", LocalDate.now().minusMonths(1));
-    model.addAttribute("endDate", LocalDate.now());
+    model.addAttribute("startDate", LocalDate.now(clock).minusMonths(1));
+    model.addAttribute("endDate", LocalDate.now(clock));
     model.addAttribute("diseases", new LinkedHashMap<>());
     model.addAttribute("treatments", new LinkedHashMap<>());
     model.addAttribute("diseasesJson", "{}");
