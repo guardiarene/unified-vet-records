@@ -81,4 +81,10 @@ public interface VisitRepository extends JpaRepository<Visit, Long> {
           + " WHERE v.id = :visitId AND a.clinic.id = :clinicId")
   boolean existsByIdAndClinicId(
       @Param("visitId") Long visitId, @Param("clinicId") Long clinicId);
+
+  @Query(
+      "SELECT CASE WHEN COUNT(v) > 0 THEN TRUE ELSE FALSE END FROM Visit v"
+          + " WHERE v.id = :visitId AND v.veterinarian.id = :veterinarianId")
+  boolean existsByIdAndVeterinarianId(
+      @Param("visitId") Long visitId, @Param("veterinarianId") Long veterinarianId);
 }
