@@ -50,14 +50,18 @@ flowchart LR
 
 ### Access: continuity of care versus privacy
 
-Sharing a record across clinics trades the owner's privacy against clinical continuity. The rule
-ties access to a concrete care relationship instead of opening every record to every clinic:
+Sharing a record across clinics trades the owner's privacy against clinical continuity. Access
+requires an appointment at the clinic: records are not open to every clinic on the platform.
 
-| Role         | Access                                                                                                                                                                  |
-|--------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Veterinarian | The full record, including visits from other clinics, when the pet has an appointment at the veterinarian's clinic. Any appointment counts, including a cancelled one. |
-| Customer     | Views the records of their own pets.                                                                                                                                    |
-| Receptionist | No access to medical records or visits.                                                                                                                                 |
+| Role         | Access                                                                                                                                                                                                                                                                                                      |
+|--------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Veterinarian | Reads the full record, including visits from other clinics, when the pet has an appointment at the veterinarian's clinic. Any appointment counts, including a cancelled one. Edits the record's general observations under the same rule. Each veterinarian edits or removes only the visits they recorded. |
+| Customer     | Read-only access to the records of their own pets.                                                                                                                                                                                                                                                          |
+| Receptionist | No access to medical records or visits.                                                                                                                                                                                                                                                                     |
+
+A clinic can currently create appointments without the owner's involvement, so an appointment
+does not imply that the owner agreed to that clinic's access. Owner confirmation of
+clinic-created appointments is on the [roadmap](#roadmap).
 
 Unification happens among the clinics registered on the platform. Records are not exchanged with
 external systems.
@@ -75,7 +79,7 @@ After login, each user is redirected to the dashboard for their role.
 
 | Role          | Features                                                                                                                                              |
 |---------------|-------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Customer      | Registration, pet management, clinic search, requesting and cancelling appointments, viewing their pets' medical records.                           |
+| Customer      | Registration, pet management, clinic search, requesting and cancelling appointments, viewing their pets' medical records (read-only).               |
 | Veterinarian  | Clinic registration, staff onboarding (veterinarians and receptionists), medical service catalog, medical records and visits, clinical reports.      |
 | Receptionist  | Appointment scheduling and rescheduling, appointment status updates, appointment reports.                                                            |
 | Administrator | User management.                                                                                                                                      |
@@ -209,6 +213,8 @@ because PowerShell splits unquoted arguments at the first dot:
 
 **Next**
 
+- Owner confirmation for appointments created by a clinic, before they grant access to the
+  medical record
 - Automated tests
 - Database migrations (Flyway)
 - Containerization (Docker and Docker Compose)
