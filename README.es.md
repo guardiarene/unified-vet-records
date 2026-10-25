@@ -55,14 +55,18 @@ flowchart LR
 ### Acceso: continuidad clínica frente a privacidad
 
 Compartir una historia entre clínicas implica equilibrar la privacidad del dueño con la
-continuidad clínica. La regla vincula el acceso a una relación de atención concreta, en lugar de
-abrir todas las historias a todas las clínicas:
+continuidad clínica. El acceso requiere un turno en la clínica: las historias no están abiertas a
+todas las clínicas de la plataforma.
 
-| Rol           | Acceso                                                                                                                                                                         |
-|---------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Veterinario   | La historia completa, incluidas las visitas de otras clínicas, cuando la mascota tiene un turno en la clínica del veterinario. Cuenta cualquier turno, incluso uno cancelado. |
-| Cliente       | Consulta las historias de sus propias mascotas.                                                                                                                                |
-| Recepcionista | Sin acceso a historias clínicas ni a visitas.                                                                                                                                  |
+| Rol           | Acceso                                                                                                                                                                                                                                                                                                                            |
+|---------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Veterinario   | Consulta la historia completa, incluidas las visitas de otras clínicas, cuando la mascota tiene un turno en la clínica del veterinario. Cuenta cualquier turno, incluso uno cancelado. Edita las observaciones generales de la historia con la misma regla. Cada veterinario modifica o da de baja solo las visitas que registró. |
+| Cliente       | Acceso de solo lectura a las historias de sus propias mascotas.                                                                                                                                                                                                                                                                   |
+| Recepcionista | Sin acceso a historias clínicas ni a visitas.                                                                                                                                                                                                                                                                                     |
+
+Hoy una clínica puede crear turnos sin intervención del dueño, así que un turno no implica que el
+dueño haya aceptado el acceso de esa clínica. La confirmación del dueño para los turnos creados
+por una clínica está en el [roadmap](#roadmap).
 
 La unificación ocurre entre las clínicas registradas en la plataforma. Las historias no se
 intercambian con sistemas externos.
@@ -80,7 +84,7 @@ Tras iniciar sesión, cada usuario es redirigido al dashboard de su rol.
 
 | Rol           | Funcionalidades                                                                                                                                         |
 |---------------|---------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Cliente       | Registro, gestión de mascotas, búsqueda de clínicas, solicitud y cancelación de turnos, consulta de las historias clínicas de sus mascotas.            |
+| Cliente       | Registro, gestión de mascotas, búsqueda de clínicas, solicitud y cancelación de turnos, consulta de las historias clínicas de sus mascotas (solo lectura). |
 | Veterinario   | Registro de la clínica, alta de personal (veterinarios y recepcionistas), catálogo de servicios médicos, historias clínicas y visitas, reportes clínicos. |
 | Recepcionista | Agenda y reprogramación de turnos, actualización del estado de los turnos, reportes de turnos.                                                         |
 | Administrador | Gestión de usuarios.                                                                                                                                    |
@@ -216,6 +220,8 @@ argumento `-D`, porque PowerShell divide los argumentos sin comillas en el prime
 
 **Próximos pasos**
 
+- La confirmación del dueño para los turnos creados por una clínica, antes de que den acceso a la
+  historia clínica
 - Tests automatizados
 - Migraciones de base de datos (Flyway)
 - Contenerización (Docker y Docker Compose)

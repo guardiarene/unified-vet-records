@@ -592,14 +592,31 @@ registered as `@Component("authz")`. The checks are declared with `@PreAuthorize
 MedicalService update(Long serviceId, UpdateMedicalServiceCommand command, Long clinicId);
 ```
 
+Write endpoints are also restricted by role in `SecurityConfig`, with specific matchers placed
+before the general ones (for example, `/visits/*/edit` before `/visits/**`). Both layers apply:
+the URL rule and the `@PreAuthorize` in the service.
+
 - Each `canXxx` method returns a `boolean` (never throws to hide existence). A `false` result
   makes Spring Security raise `AccessDeniedException`, which the handler renders as a **403**.
-- `SYSTEM_ADMINISTRATOR` passes every check.
+- **Read and write are authorized separately.** Read operations use `canAccess*`; write
+  operations use `canModify*`. Never reuse a `canAccess*` check on a write method.
+- `SYSTEM_ADMINISTRATOR` passes every `canAccess*` check. The `canModify*` checks are
+  `VETERINARIAN`-only: the administrator, `CUSTOMER` and `RECEPTIONIST` are rejected.
 - `canManageMedicalService` returns `true` only for an administrator or a veterinarian whose own
   or work clinic owns the service — `CUSTOMER` and `RECEPTIONIST` are rejected.
 - For pets, medical records and visits, **any appointment at the veterinarian's clinic grants the
   veterinarian access — including a cancelled one. This is intentional**, not an oversight: a
   veterinarian who has ever had the pet booked at their clinic keeps clinical read access.
+- `RECEPTIONIST` has no access to medical records or visits: `canAccessMedicalRecord` and
+  `canAccessVisit` return `false` for that role, in addition to the URL rules.
+- `canModifyMedicalRecord` (general observations) follows the clinic rule above.
+- **Visits follow the author rule:** `canModifyVisit` returns `true` only for the veterinarian who
+  recorded the visit, and only while their clinic still has an appointment for the pet. Colleagues
+  at the same clinic cannot edit or remove it. If the author leaves the clinic, the visit is
+  corrected by recording a new visit.
+- Views that offer write actions get the decision as a model flag computed by the controller
+  with the same `canModify*` check (for example, `canEditVisit`); templates never repeat the
+  rule.
 - Invariants between related entities (pet/customer, medical service/clinic) are verified in the
   service, never only in the DTO: any ID that arrives in a form can be tampered with.
 
