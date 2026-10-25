@@ -44,8 +44,22 @@ public class ResourceAuthorizationService {
     if (user.getRole() == Role.CUSTOMER) {
       return visitRepository.existsByIdAndPetOwnerId(visitId, user.getId());
     }
+    if (user.getRole() == Role.RECEPTIONIST) {
+      return false;
+    }
     Long clinicId = resolveClinicId(user);
     return clinicId != null && visitRepository.existsByIdAndClinicId(visitId, clinicId);
+  }
+
+  public boolean canModifyVisit(Authentication auth, Long visitId) {
+    AuthenticatedUser user = principal(auth);
+    if (user.getRole() != Role.VETERINARIAN) {
+      return false;
+    }
+    Long clinicId = resolveClinicId(user);
+    return clinicId != null
+        && visitRepository.existsByIdAndVeterinarianId(visitId, user.getId())
+        && visitRepository.existsByIdAndClinicId(visitId, clinicId);
   }
 
   public boolean canAccessPet(Authentication auth, Long petId) {
@@ -67,6 +81,18 @@ public class ResourceAuthorizationService {
     }
     if (user.getRole() == Role.CUSTOMER) {
       return medicalRecordRepository.existsByIdAndPetOwnerId(recordId, user.getId());
+    }
+    if (user.getRole() == Role.RECEPTIONIST) {
+      return false;
+    }
+    Long clinicId = resolveClinicId(user);
+    return clinicId != null && medicalRecordRepository.existsByIdAndClinicId(recordId, clinicId);
+  }
+
+  public boolean canModifyMedicalRecord(Authentication auth, Long recordId) {
+    AuthenticatedUser user = principal(auth);
+    if (user.getRole() != Role.VETERINARIAN) {
+      return false;
     }
     Long clinicId = resolveClinicId(user);
     return clinicId != null && medicalRecordRepository.existsByIdAndClinicId(recordId, clinicId);
