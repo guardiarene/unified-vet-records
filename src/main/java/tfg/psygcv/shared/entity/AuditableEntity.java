@@ -72,7 +72,8 @@ public abstract class AuditableEntity {
   @PreUpdate
   protected void onUpdate() {
     if (Boolean.FALSE.equals(active) && deletedAt == null) {
-      deletedAt = LocalDateTime.now();
+      // AuditingEntityListener runs before this callback, so updatedAt already holds the Clock time
+      deletedAt = updatedAt;
       if (isBlank(deletedBy)) {
         deletedBy = !isBlank(updatedBy) ? updatedBy : createdBy;
       }
