@@ -45,6 +45,7 @@ tfg.psygcv
 ├── config/                        # Configuration (cross-cutting infra)
 │   ├── audit/                     #   JpaAuditConfig
 │   ├── security/                  #   SecurityConfig, AuthenticatedUser, SuccessHandler
+│   ├── time/                      #   ClockConfig
 │   └── util/                      #   JsonUtil and other infrastructure utilities
 │
 ├── shared/                        # Cross-cutting base classes
@@ -643,6 +644,26 @@ Services must enforce invariants (e.g., forced roles) regardless of input.
     - `WARN`: recoverable issues (duplicate email attempt, invalid state transition)
     - `ERROR`: unexpected failures (unhandled exceptions, external service failures)
 - Never log: passwords, tokens, personal data, full stack traces at INFO level
+
+---
+
+## Date and Time
+
+- The current date and time always come from the injected `Clock` bean (`config/time/ClockConfig`):
+  `LocalDate.now(clock)`, `LocalDateTime.now(clock)`. Never call `now()` without arguments — it
+  uses the JVM default time zone
+- Inject the `Clock` by constructor, like any other dependency
+- The application time zone is defined by the `app.time-zone` property in `application.yaml`
+  (`America/Argentina/Cordoba`). The JVM may run in UTC: business dates do not depend on it, and log
+  timestamps stay in the JVM zone
+- The same `Clock` backs JPA auditing (`@CreatedDate`, `@LastModifiedDate`, through the
+  `DateTimeProvider` in `JpaAuditConfig`) and Bean Validation (`@FutureOrPresent`, `@PastOrPresent`,
+  through a `ClockProvider`)
+- Entities cannot inject the `Clock`: `AuditableEntity` takes `deletedAt` from `updatedAt`, which
+  `AuditingEntityListener` sets before the entity's own `@PreUpdate` callback
+- `hibernate.jdbc.time_zone` is not configured: persisted types carry no zone (`LocalDate`,
+  `LocalTime`, `LocalDateTime`) and queries use no database date functions. Revisit it if either
+  changes
 
 ---
 
