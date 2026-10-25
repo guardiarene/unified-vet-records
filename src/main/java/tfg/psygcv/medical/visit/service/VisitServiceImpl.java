@@ -1,5 +1,6 @@
 package tfg.psygcv.medical.visit.service;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -51,6 +52,7 @@ public class VisitServiceImpl implements VisitService {
   private final VaccineRepository vaccineRepository;
   private final VisitValidator visitValidator;
   private final UserService userService;
+  private final Clock clock;
 
   @Override
   @Transactional
@@ -255,7 +257,7 @@ public class VisitServiceImpl implements VisitService {
     visit.setVeterinarian(veterinarian);
     visit.setActive(true);
     if (visit.getDate() == null) {
-      visit.setDate(LocalDate.now());
+      visit.setDate(LocalDate.now(clock));
     }
     if (visit.getClinicalExam() != null) {
       visit.getClinicalExam().setVisit(visit);

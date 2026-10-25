@@ -1,7 +1,9 @@
 package tfg.psygcv.appointment.service;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import tfg.psygcv.appointment.command.RescheduleAppointmentCommand;
@@ -17,12 +19,15 @@ import tfg.psygcv.user.entity.User;
 
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class AppointmentValidator extends BaseValidator {
+
+  private final Clock clock;
 
   public void validateClientAppointmentCreation(
       LocalDate date, Long petId, Long serviceId, Long clinicId, Long clientId) {
     validateNotNull(date, "Appointment date cannot be null");
-    if (date.isBefore(LocalDate.now())) {
+    if (date.isBefore(LocalDate.now(clock))) {
       throw new BusinessRuleException("Appointment date cannot be in the past");
     }
     validateId(petId);
@@ -35,7 +40,7 @@ public class AppointmentValidator extends BaseValidator {
       ScheduleAppointmentCommand command, Long receptionistId) {
     validateNotNull(command, "Schedule command cannot be null");
     validateNotNull(command.getDate(), "Appointment date is required");
-    if (command.getDate().isBefore(LocalDate.now())) {
+    if (command.getDate().isBefore(LocalDate.now(clock))) {
       throw new BusinessRuleException("Appointment date cannot be in the past");
     }
     validateNotNull(command.getTime(), "Appointment time is required");
@@ -69,7 +74,7 @@ public class AppointmentValidator extends BaseValidator {
     validateNotNull(command, "Reschedule command cannot be null");
     validateNotNull(command.getDate(), "New appointment date is required");
     validateNotNull(command.getTime(), "New appointment time is required");
-    if (command.getDate().isBefore(LocalDate.now())) {
+    if (command.getDate().isBefore(LocalDate.now(clock))) {
       throw new BusinessRuleException("New appointment date cannot be in the past");
     }
     validateNotNull(command.getMedicalServiceId(), "Medical service is required for rescheduling");
