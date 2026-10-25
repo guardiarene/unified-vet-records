@@ -57,6 +57,7 @@ public interface VisitRepository extends JpaRepository<Visit, Long> {
       "SELECT v FROM Visit v "
           + "LEFT JOIN FETCH v.clinicalExam "
           + "LEFT JOIN FETCH v.anamnesis a "
+          + "LEFT JOIN FETCH v.veterinarian "
           + "WHERE v.id = :id AND v.active = true")
   Optional<Visit> findCompleteById(@Param("id") Long id);
 
