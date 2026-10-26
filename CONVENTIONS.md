@@ -9,9 +9,8 @@ Referenced by `CLAUDE.md` and `.github/copilot-instructions.md`.
 
 - Java 25, Spring Boot 4.x, Maven (via the Maven Wrapper)
 - Spring Data JPA, Spring Security 7, Thymeleaf
-- MySQL (dev/prod), H2 (test)
-- Flyway migrations: planned, not configured yet — the schema is managed by `ddl-auto`; do not create
-  migrations until Flyway is configured
+- MySQL 8.4 in every profile (tests run it with Testcontainers)
+- Flyway migrations manage the schema in every profile; Hibernate only validates it
 - Lombok (restricted subset), Jakarta Validation
 - JUnit 6 (Jupiter), Mockito, AssertJ
 - CI: GitHub Actions (`./mvnw -B -ntp clean verify`)
@@ -671,21 +670,29 @@ Services must enforce invariants (e.g., forced roles) regardless of input.
 
 ### Flyway Migrations
 
-> **Planned — not configured yet.** Flyway is not a project dependency yet and the schema is managed by
-> `ddl-auto` (see [Spring Profiles](#spring-profiles)). Do not create migrations or files under
-> `db/migration/` until Flyway is configured. The rules below apply from then on.
-
-- All schema changes managed with Flyway
+- Flyway manages the schema in every profile (`dev`, `test`, `prod`)
 - Location: `src/main/resources/db/migration/`
-- Naming: `V1__description.sql`, `V2__description.sql`
-- Never modify an applied migration — create a new one
-- `application-test.yaml` may use `ddl-auto: create-drop` for H2
+- Every schema change is a new migration named `V{n}__description.sql` (`V2__add_pet_microchip.sql`)
+- Never modify a migration that has already been applied — create a new one
+- Migrations contain schema only: no data
+- Constraint names are readable: `uk_<table>_<column>` for unique constraints and
+  `fk_<table>_<column>` for foreign keys
+- `V1__baseline.sql` was generated from the entity model with Hibernate's schema-generation scripts
+  (MySQL dialect). It does not declare a charset or collation: they are set when the database is
+  created
+- Databases start empty: Flyway does not baseline an existing schema (no `baseline-on-migrate`). A
+  database created before Flyway (by `ddl-auto`) must be recreated empty
+- `ddl-auto: validate` only detects missing tables or columns and clearly incompatible types. Types
+  of the same family (for example, `varchar` and `TEXT`) are considered compatible, and it does not
+  compare length, nullability, uniqueness, foreign keys or enum values. Any of those changes in an
+  entity still requires a migration
+- Adding, removing or renaming a constant of a persisted enum requires a migration that modifies the
+  column: Hibernate maps `@Enumerated(EnumType.STRING)` to a native MySQL `enum(...)` column, and
+  `ddl-auto: validate` does not detect the difference
 
 ### Hibernate
 
-- `ddl-auto: validate` or `none` in dev and prod — never `update` or `create`
-- **Temporary exception:** `dev` uses `ddl-auto: update` until Flyway is configured. `prod` never uses
-  `update` or `create`
+- `ddl-auto: validate` in every profile — never `update`, `create` or `create-drop`
 - `open-in-view: false` explicitly
 - SQL logging is enabled only by the `debug` profile, through the `org.hibernate.SQL` and
   `org.hibernate.orm.jdbc.bind` loggers
@@ -695,12 +702,12 @@ Services must enforce invariants (e.g., forced roles) regardless of input.
 
 ## Spring Profiles
 
-| Profile | Database   | DDL           | Flyway     | Notes                                                               |
-|---------|------------|---------------|------------|---------------------------------------------------------------------|
-| `dev`   | MySQL      | `update`      | Planned    | Local development. Temporary `update` until Flyway is configured    |
-| `test`  | H2         | `create-drop` | —          | Fast, isolated test runs                                            |
-| `prod`  | MySQL      | `validate`    | Planned    | Production. Requires an existing schema until Flyway is configured  |
-| `debug` | (inherits) | (inherits)    | (inherits) | SQL and bound-parameter logging. Local only; combine as `dev,debug` |
+| Profile | Database                  | DDL        | Flyway     | Notes                                                               |
+|---------|---------------------------|------------|------------|---------------------------------------------------------------------|
+| `dev`   | MySQL                     | `validate` | Migrates   | Local development. The database is created empty                    |
+| `test`  | MySQL (Testcontainers)    | `validate` | Migrates   | Test runs and CI. Requires Docker                                   |
+| `prod`  | MySQL                     | `validate` | Migrates   | Production. Credentials from environment variables                  |
+| `debug` | (inherits)                | (inherits) | (inherits) | SQL and bound-parameter logging. Local only; combine as `dev,debug` |
 
 Local credentials live in `application-local.yaml` at the project root: not versioned, imported by the
 `dev` profile.
@@ -744,8 +751,26 @@ No hardcoded credentials in any profile. Never modify `application-prod.yaml` un
   and `authentication(user)` wraps `AuthenticatedUser.from(user)` in an authenticated
   `UsernamePasswordAuthenticationToken`, mirroring what Spring Security provides at runtime. Never
   build the principal by hand inside a test.
-- Support classes are non-instantiable utilities (private constructor), matching the mapper
-  pattern.
+- Fixture factories (such as `AuthTestFactory`) are non-instantiable utilities (private
+  constructor), matching the mapper pattern. The rule does not apply to Spring test configurations
+  (such as `TestcontainersConfiguration`): Spring must be able to instantiate them.
+
+### Database in Tests
+
+- Tests that load a Spring context run against MySQL 8.4 in a container: they import
+  `TestcontainersConfiguration` (`support/`), which declares the `MySQLContainer` bean with
+  `@ServiceConnection`. The image version is defined only there
+- Flyway applies the migrations on startup and `ddl-auto: validate` checks the entities against
+  them, so `./mvnw clean verify` fails if an entity references a missing table or column
+- Docker is required to run these tests. Mockito unit tests do not need it
+- The container lives as long as the Spring context: test classes that share the same cached
+  context share one container, but a test with a different context configuration (for example, a
+  slice test such as `@DataJpaTest`) starts its own container
+
+### Runtime Verification
+
+To verify a change in the running application, use the `dev` profile against a real MySQL (local or
+in a container), never the `test` profile.
 
 ### Test Naming
 
@@ -833,8 +858,8 @@ Conventional Commits format: `feat(user): implement profile page with avatar upl
 - Add dependencies to `pom.xml` without being asked
 - Add Lombok annotations beyond the allowed list
 - Silence warnings or skip checks instead of fixing root causes
-- Use `ddl-auto: update` or `ddl-auto: create` outside the test profile (temporary exception: `dev` uses
-  `update` until Flyway is configured; never in `prod`)
+- Use any `ddl-auto` value other than `validate` in any profile
+- Modify a Flyway migration that has already been applied
 - Expose JPA entities through controller signatures
 - Catch exceptions in controllers (use `@ControllerAdvice`)
 - Return `null` from service methods (use `Optional`)

@@ -140,12 +140,15 @@ flowchart TB
     EX["exception/<br/>GlobalExceptionHandler"] -.-> domains
 ```
 
-| Profile | Database | Purpose                                                                        |
-|---------|----------|--------------------------------------------------------------------------------|
-| `dev`   | MySQL    | Local development. Imports credentials from `application-local.yaml`           |
-| `test`  | H2       | In-memory database for test runs and CI                                        |
-| `prod`  | MySQL    | Production. Credentials from environment variables; the schema is validated   |
-| `debug` | —        | Optional, local only. Logs SQL statements and bound parameters; use `dev,debug` |
+| Profile | Database               | Purpose                                                                         |
+|---------|------------------------|---------------------------------------------------------------------------------|
+| `dev`   | MySQL                  | Local development. Imports credentials from `application-local.yaml`            |
+| `test`  | MySQL (Testcontainers) | Test runs and CI, in a MySQL 8.4 container started by the tests                 |
+| `prod`  | MySQL                  | Production. Credentials from environment variables                              |
+| `debug` | —                      | Optional, local only. Logs SQL statements and bound parameters; use `dev,debug` |
+
+In every profile, Flyway creates and migrates the schema from
+[`db/migration`](src/main/resources/db/migration), and Hibernate only validates it.
 
 ---
 
@@ -154,7 +157,8 @@ flowchart TB
 ### Requirements
 
 - JDK 25
-- MySQL 8
+- MySQL 8.4
+- Docker, to run the tests: they start a MySQL container with Testcontainers
 
 Maven is not required: the project includes the Maven Wrapper.
 
@@ -166,10 +170,16 @@ Maven is not required: the project includes the Maven Wrapper.
    cd unified-vet-records
    ```
 
-2. **Create the database:**
+2. **Create the database** (empty: Flyway creates the tables when the application starts):
    ```sql
-   CREATE DATABASE psygcv_dev;
+   CREATE DATABASE psygcv_dev CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
    ```
+   The charset and collation are set when the database is created: the migrations do not declare
+   them.
+
+   A database created by an earlier version of the project (when Hibernate generated the schema
+   with `ddl-auto`) must be dropped and recreated empty: Flyway does not accept a non-empty schema
+   without a migration history.
 
 3. **Configure the credentials** in an `application-local.yaml` file at the project root (not
    versioned; imported by the `dev` profile):
@@ -215,8 +225,7 @@ because PowerShell splits unquoted arguments at the first dot:
 
 - Owner confirmation for appointments created by a clinic, before they grant access to the
   medical record
-- Automated tests
-- Database migrations (Flyway)
+- Broader automated test coverage (service, repository and web layers)
 - Containerization (Docker and Docker Compose)
 - A continuous delivery pipeline
 - Cloud deployment with containers

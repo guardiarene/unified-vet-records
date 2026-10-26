@@ -147,12 +147,15 @@ flowchart TB
     EX["exception/<br/>GlobalExceptionHandler"] -.-> domains
 ```
 
-| Perfil  | Base de datos | Propósito                                                                                   |
-|---------|---------------|---------------------------------------------------------------------------------------------|
-| `dev`   | MySQL         | Desarrollo local. Importa las credenciales de `application-local.yaml`                      |
-| `test`  | H2            | Base de datos en memoria para los tests y la CI                                             |
-| `prod`  | MySQL         | Producción. Credenciales desde variables de entorno; el esquema se valida                   |
-| `debug` | —             | Opcional, solo para uso local. Registra las sentencias SQL y sus parámetros; usar `dev,debug` |
+| Perfil  | Base de datos          | Propósito                                                                                     |
+|---------|------------------------|-----------------------------------------------------------------------------------------------|
+| `dev`   | MySQL                  | Desarrollo local. Importa las credenciales de `application-local.yaml`                        |
+| `test`  | MySQL (Testcontainers) | Tests y CI, en un contenedor de MySQL 8.4 que levantan los propios tests                      |
+| `prod`  | MySQL                  | Producción. Credenciales desde variables de entorno                                           |
+| `debug` | —                      | Opcional, solo para uso local. Registra las sentencias SQL y sus parámetros; usar `dev,debug` |
+
+En todos los perfiles, Flyway crea y migra el esquema a partir de
+[`db/migration`](src/main/resources/db/migration), y Hibernate solo lo valida.
 
 ---
 
@@ -161,7 +164,8 @@ flowchart TB
 ### Requisitos
 
 - JDK 25
-- MySQL 8
+- MySQL 8.4
+- Docker, para correr los tests: levantan un contenedor de MySQL con Testcontainers
 
 No hace falta instalar Maven: el proyecto incluye el Maven Wrapper.
 
@@ -173,10 +177,15 @@ No hace falta instalar Maven: el proyecto incluye el Maven Wrapper.
    cd unified-vet-records
    ```
 
-2. **Crear la base de datos:**
+2. **Crear la base de datos** (vacía: Flyway crea las tablas al arrancar la aplicación):
    ```sql
-   CREATE DATABASE psygcv_dev;
+   CREATE DATABASE psygcv_dev CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
    ```
+   El charset y la colación se fijan al crear la base: las migraciones no los declaran.
+
+   Una base creada con una versión anterior del proyecto (cuando Hibernate generaba el esquema con
+   `ddl-auto`) debe eliminarse y recrearse vacía: Flyway no acepta un esquema no vacío sin
+   historial de migraciones.
 
 3. **Configurar las credenciales** en un archivo `application-local.yaml` en la raíz del proyecto
    (no versionado; lo importa el perfil `dev`):
@@ -222,8 +231,7 @@ argumento `-D`, porque PowerShell divide los argumentos sin comillas en el prime
 
 - La confirmación del dueño para los turnos creados por una clínica, antes de que den acceso a la
   historia clínica
-- Tests automatizados
-- Migraciones de base de datos (Flyway)
+- Más cobertura de tests automatizados (servicios, repositorios y web)
 - Contenerización (Docker y Docker Compose)
 - Un pipeline de entrega continua
 - Despliegue en la nube con contenedores
