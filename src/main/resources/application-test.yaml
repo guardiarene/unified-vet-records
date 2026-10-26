@@ -1,10 +1,5 @@
+# The datasource is provided by the MySQL container (TestcontainersConfiguration)
 spring:
-  datasource:
-    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
-
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: validate
