@@ -52,8 +52,7 @@ splits unquoted arguments at the first dot (`.\mvnw.cmd spring-boot:run "-Dsprin
 7. Create service interface and implementation in `<domain>/service/`
 8. Create controller in `<domain>/controller/` using DTOs with `@Valid`
 9. Add domain-specific exceptions in `exception/` if needed
-10. Flyway is planned but not configured yet (the schema is managed by `ddl-auto`): do not create
-    migrations until it is. Once configured, add the migration in `src/main/resources/db/migration/`
+10. Add a new Flyway migration in `src/main/resources/db/migration/` (`V{n}__description.sql`)
 11. Write tests — run `./mvnw clean verify`
 
 ### Fixing a Bug
@@ -73,6 +72,9 @@ splits unquoted arguments at the first dot (`.\mvnw.cmd spring-boot:run "-Dsprin
 - **Never** catch exceptions in controllers — `@ControllerAdvice` handles them
 - **Never** modify `application-prod.yaml` unless explicitly instructed
 - **Never** use `BeanUtils.copyProperties()` — map fields explicitly
+- **Never** modify a Flyway migration that has already been applied — every schema change is a new
+  migration `V{n}__description.sql`
+- **Never** set `ddl-auto` to anything other than `validate`, in any profile
 - **Always** run `./mvnw clean verify` before considering a task complete
 - **Always** follow existing patterns over inventing new ones
 

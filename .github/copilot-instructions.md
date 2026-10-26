@@ -4,8 +4,9 @@ Full standards in `CONVENTIONS.md` (project root). This file is a compact refere
 
 ## Stack
 
-Java 25, Spring Boot 4.x, Spring Data JPA, Spring Security 7, Thymeleaf, MySQL/H2.
-Flyway is planned but not configured yet (schema managed by `ddl-auto`): do not create migrations.
+Java 25, Spring Boot 4.x, Spring Data JPA, Spring Security 7, Thymeleaf, MySQL (Testcontainers in tests).
+Flyway manages the schema in every profile: every schema change is a new migration
+`V{n}__description.sql` in `src/main/resources/db/migration/`; never modify an applied migration.
 
 ## Architecture
 
@@ -62,6 +63,8 @@ Controller (thin, no logic) -> Service (all business logic, `@Transactional`) ->
 ## Testing
 
 Service logic with Mockito. Controllers with `@WebMvcTest`. Repositories with `@DataJpaTest`.
+Tests that load a Spring context import `support/TestcontainersConfiguration` (MySQL 8.4; requires
+Docker).
 
 ## Do NOT
 
@@ -69,8 +72,7 @@ Service logic with Mockito. Controllers with `@WebMvcTest`. Repositories with `@
 - Put business logic in controllers
 - Expose entities in controller signatures
 - Catch exceptions in controllers
-- Use `ddl-auto: update` outside test profile (temporary exception: `dev`, until Flyway is configured;
-  never `prod`)
+- Use any `ddl-auto` value other than `validate`, in any profile
 - Introduce new architectural patterns
 - Return `null` from service methods
 - Call `now()` without arguments — the current time always comes from the injected `Clock` (`LocalDate.now(clock)`)
