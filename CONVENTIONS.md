@@ -731,6 +731,21 @@ No hardcoded credentials in any profile. Never modify `application-prod.yaml` un
 - Constructor injection preferred
 - No mocking entities or value objects
 - Avoid over-mocking — if everything is mocked, the test proves nothing
+- `lenient()` is allowed only for stubs that exist solely to make a regression fail a test: with
+  the correct code the branch under test short-circuits before the stub is used, and strict
+  stubbing would otherwise report it as unnecessary. Always add a `// Lenient: ...` comment
+  explaining why the stub exists.
+
+### Test Support Classes
+
+- Shared fixtures for authentication live in `src/test/java/tfg/psygcv/support/` (for example,
+  `AuthTestFactory`), reusable across the test suite.
+- Build the authenticated principal with `AuthTestFactory`: `user(id, role)` creates a real `User`
+  and `authentication(user)` wraps `AuthenticatedUser.from(user)` in an authenticated
+  `UsernamePasswordAuthenticationToken`, mirroring what Spring Security provides at runtime. Never
+  build the principal by hand inside a test.
+- Support classes are non-instantiable utilities (private constructor), matching the mapper
+  pattern.
 
 ### Test Naming
 
