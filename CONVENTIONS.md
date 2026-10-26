@@ -43,6 +43,7 @@ Each domain owns all its layers. Cross-cutting infrastructure lives in `shared/`
 tfg.psygcv
 ├── config/                        # Configuration (cross-cutting infra)
 │   ├── audit/                     #   JpaAuditConfig
+│   ├── bootstrap/                 #   InitialAdminBootstrapRunner, AdminBootstrapProperties
 │   ├── security/                  #   SecurityConfig, AuthenticatedUser, SuccessHandler
 │   ├── time/                      #   ClockConfig
 │   └── util/                      #   JsonUtil and other infrastructure utilities
@@ -713,6 +714,38 @@ Local credentials live in `application-local.yaml` at the project root: not vers
 `dev` profile.
 
 No hardcoded credentials in any profile. Never modify `application-prod.yaml` unless explicitly instructed.
+
+---
+
+## Application Bootstrap
+
+Startup data that cannot be created through the web UI (currently only the initial administrator)
+follows this pattern:
+
+- **Configuration** is bound from environment variables into a `@ConfigurationProperties` class in
+  `config/bootstrap/`. Defaults are empty, so tests, CI and development need no variables.
+- **All or nothing:** if some variables are defined while others are missing or blank, the
+  configuration class fails during context refresh with a message naming the missing variables, and
+  the application does not start. Never include the values. A blank value counts as not defined
+  (`StringUtils.hasText`).
+- **The rule lives in the service:** the runner is a thin `ApplicationRunner` that only reads the
+  configuration and calls a dedicated service method (for example,
+  `createInitialAdministratorIfAbsent`). That method is idempotent, is not exposed by any controller
+  and does not reuse administration operations meant for authenticated users.
+- **Idempotent by rule:** it creates the initial administrator only when no active
+  `SYSTEM_ADMINISTRATOR` exists, so restarting with the same variables is safe.
+- **Never log secrets or personal data:** the bootstrap logs the created user ID only, never the
+  email or the password.
+
+### Last active administrator
+
+The system must never be left without an active `SYSTEM_ADMINISTRATOR`: the last one cannot be
+deactivated or lose the administrator role. The invariant is enforced in a single point in
+`UserServiceImpl` (`removesLastActiveAdministrator`), shared by `deactivate` and `updateComplete`;
+violations throw `BusinessRuleException`. The count of active administrators is queried only when the
+change actually deactivates an administrator or removes its role, and a `null` `active` value means
+"no change". Every path that changes a user's active state or role must go through those two
+methods.
 
 ---
 

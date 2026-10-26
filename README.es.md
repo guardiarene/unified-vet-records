@@ -223,6 +223,45 @@ argumento `-D`, porque PowerShell divide los argumentos sin comillas en el prime
 .\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=dev"
 ```
 
+### Administrador inicial
+
+Una base vacía no tiene administrador, y las páginas de gestión de usuarios exigen que exista uno.
+Al arrancar, la aplicación crea el administrador inicial a partir de cinco variables de entorno,
+todas obligatorias en conjunto:
+
+| Variable           | Valor                                  |
+|--------------------|----------------------------------------|
+| `ADMIN_EMAIL`      | Email de la cuenta del administrador   |
+| `ADMIN_PASSWORD`   | Contraseña, al menos 8 caracteres      |
+| `ADMIN_FIRST_NAME` | Nombre                                 |
+| `ADMIN_LAST_NAME`  | Apellido                               |
+| `ADMIN_PHONE`      | Teléfono                               |
+
+```bash
+export ADMIN_EMAIL=admin@example.com
+export ADMIN_PASSWORD=change-me-123
+export ADMIN_FIRST_NAME=Ada
+export ADMIN_LAST_NAME=Admin
+export ADMIN_PHONE=5551234567
+./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
+```
+
+Comportamiento:
+
+- **Ninguna variable definida** (el caso normal en tests, CI y desarrollo): el bootstrap no hace
+  nada.
+- **Las cinco definidas**: si no existe un administrador activo, se crea uno con el rol
+  `SYSTEM_ADMINISTRATOR`. El log registra solo el ID del usuario, nunca el email ni la contraseña.
+- **Algunas definidas y otras no**: la aplicación no arranca, y el error nombra las variables
+  faltantes (nunca sus valores).
+- **Ya existe un administrador activo**: no se crea nada, así que reiniciar con las mismas variables
+  es seguro.
+
+Recomendaciones de seguridad una vez creado el administrador:
+
+1. Cambiar la contraseña del administrador desde las páginas de gestión de usuarios.
+2. Quitar `ADMIN_PASSWORD` del entorno.
+
 ---
 
 ## Roadmap

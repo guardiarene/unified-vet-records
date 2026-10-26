@@ -217,6 +217,45 @@ because PowerShell splits unquoted arguments at the first dot:
 .\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=dev"
 ```
 
+### Initial administrator
+
+An empty database has no administrator, and the user management pages require one to exist. At
+startup the application creates the initial administrator from five environment variables, all
+required together:
+
+| Variable           | Value                                     |
+|--------------------|-------------------------------------------|
+| `ADMIN_EMAIL`      | Email of the administrator account        |
+| `ADMIN_PASSWORD`   | Password, at least 8 characters           |
+| `ADMIN_FIRST_NAME` | First name                                |
+| `ADMIN_LAST_NAME`  | Last name                                 |
+| `ADMIN_PHONE`      | Phone number                              |
+
+```bash
+export ADMIN_EMAIL=admin@example.com
+export ADMIN_PASSWORD=change-me-123
+export ADMIN_FIRST_NAME=Ada
+export ADMIN_LAST_NAME=Admin
+export ADMIN_PHONE=5551234567
+./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
+```
+
+Behavior:
+
+- **No variable defined** (the normal case in tests, CI and development): the bootstrap does
+  nothing.
+- **All five defined**: if no active administrator exists, one is created with the
+  `SYSTEM_ADMINISTRATOR` role. The log records only the user ID, never the email or the password.
+- **Some defined, others missing**: the application does not start, and the error names the missing
+  variables (never their values).
+- **An active administrator already exists**: nothing is created, so restarting with the same
+  variables is safe.
+
+Security recommendations once the administrator exists:
+
+1. Change the administrator's password from the user management pages.
+2. Remove `ADMIN_PASSWORD` from the environment.
+
 ---
 
 ## Roadmap
