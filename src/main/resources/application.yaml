@@ -10,3 +10,10 @@ server:
 
 app:
   time-zone: America/Argentina/Cordoba
+  bootstrap:
+    admin:
+      email: ${ADMIN_EMAIL:}
+      password: ${ADMIN_PASSWORD:}
+      first-name: ${ADMIN_FIRST_NAME:}
+      last-name: ${ADMIN_LAST_NAME:}
+      phone: ${ADMIN_PHONE:}
