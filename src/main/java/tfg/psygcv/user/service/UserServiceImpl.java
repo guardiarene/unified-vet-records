@@ -12,9 +12,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tfg.psygcv.clinic.entity.VeterinaryClinic;
 import tfg.psygcv.config.security.AuthenticatedUser;
+import tfg.psygcv.exception.domain.BusinessRuleException;
 import tfg.psygcv.exception.domain.DuplicateEmailException;
 import tfg.psygcv.exception.domain.ResourceNotFoundException;
 import tfg.psygcv.user.command.CreateAdminUserCommand;
+import tfg.psygcv.user.command.CreateInitialAdministratorCommand;
 import tfg.psygcv.user.command.CreateStaffCommand;
 import tfg.psygcv.user.command.RegisterCustomerCommand;
 import tfg.psygcv.user.command.RegisterVeterinarianCommand;
@@ -122,16 +124,43 @@ public class UserServiceImpl implements UserDetailsService, UserService {
 
   @Override
   @Transactional
+  public void createInitialAdministratorIfAbsent(CreateInitialAdministratorCommand command) {
+    if (userRepository.countByRoleAndActiveTrue(Role.SYSTEM_ADMINISTRATOR) > 0) {
+      log.info("Active administrator already present; skipping initial administrator creation");
+      return;
+    }
+    User user = new User();
+    user.setFirstName(command.getFirstName());
+    user.setLastName(command.getLastName());
+    user.setEmail(command.getEmail());
+    user.setPassword(command.getPassword());
+    user.setPhone(command.getPhone());
+    user.setRole(Role.SYSTEM_ADMINISTRATOR);
+    user.setActive(true);
+    User saved = save(user);
+    log.info("Initial administrator created [userId={}]", saved.getId());
+  }
+
+  @Override
+  @Transactional
   public void updateComplete(Long userId, UpdateAdminUserCommand command) {
     userValidator.validateId(userId);
     userValidator.validateForCompleteUpdate(command);
     User existingUser = findById(userId);
+    boolean deactivating = Boolean.FALSE.equals(command.getActive());
+    boolean losingRole = command.getRole() != Role.SYSTEM_ADMINISTRATOR;
+    if (removesLastActiveAdministrator(existingUser, deactivating, losingRole)) {
+      throw new BusinessRuleException(
+          "The last active system administrator cannot be deactivated or lose its role");
+    }
     existingUser.setFirstName(command.getFirstName());
     existingUser.setLastName(command.getLastName());
     existingUser.setPhone(command.getPhone());
     existingUser.setEmail(command.getEmail());
     existingUser.setRole(command.getRole());
-    existingUser.setActive(command.getActive());
+    if (command.getActive() != null) {
+      existingUser.setActive(command.getActive());
+    }
     if (command.getPassword() != null && !command.getPassword().isEmpty()) {
       encodePassword(existingUser, command.getPassword());
     }
@@ -155,6 +184,10 @@ public class UserServiceImpl implements UserDetailsService, UserService {
   @Transactional
   public void deactivate(Long userId) {
     User user = findById(userId);
+    if (removesLastActiveAdministrator(user, true, false)) {
+      throw new BusinessRuleException(
+          "The last active system administrator cannot be deactivated or lose its role");
+    }
     user.setActive(false);
     userRepository.save(user);
     log.info("User deactivated [userId={}]", userId);
@@ -210,5 +243,22 @@ public class UserServiceImpl implements UserDetailsService, UserService {
 
   private void encodePassword(User user, String newPassword) {
     user.setPassword(passwordEncoder.encode(newPassword));
+  }
+
+  /**
+   * Returns whether applying the change to {@code user} would leave the system without an active
+   * system administrator.
+   *
+   * <p>Single enforcement point for the last-administrator invariant: every change to a user's
+   * active state or role must go through {@code deactivate} or {@code updateComplete}. The
+   * administrator count is only queried when {@code user} is an active administrator and the change
+   * deactivates it or removes its role; a {@code null} {@code active} means "no change".
+   */
+  private boolean removesLastActiveAdministrator(
+      User user, boolean deactivating, boolean losingRole) {
+    if (user.getRole() != Role.SYSTEM_ADMINISTRATOR || (!deactivating && !losingRole)) {
+      return false;
+    }
+    return userRepository.countByRoleAndActiveTrue(Role.SYSTEM_ADMINISTRATOR) <= 1;
   }
 }
