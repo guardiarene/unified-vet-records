@@ -81,3 +81,17 @@ jobs:
             echo "$invalid"
             exit 1
           fi
+
+  docker-build:
+    name: Container Image
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Build image
+        run: docker build --tag psygcv:ci .
