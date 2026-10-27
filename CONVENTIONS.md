@@ -722,6 +722,9 @@ No hardcoded credentials in any profile. Never modify `application-prod.yaml` un
 - **Images are pinned by full version tag and digest** (`image:tag@sha256:...`): Eclipse Temurin 25
   (JDK for the build, JRE for the runtime) and MySQL 8.4. Dependabot keeps the `docker` and
   `docker-compose` ecosystems updated.
+- **The MySQL version used by the tests follows the Compose one.** `TestcontainersConfiguration`
+  pins the same full version as `docker-compose.yml`; when a Dependabot PR updates the MySQL image in
+  Compose, that same PR must update the test constant, because Dependabot does not detect it.
 - **The application image is multi-stage.** The build stage copies only `pom.xml`, `.mvn/`, `mvnw`
   and `src/` — never `COPY . .` — runs `./mvnw -B -ntp package -Dmaven.test.skip=true` and caches the
   Maven repository with a BuildKit cache mount. Tests need Docker and run in the CI, not in the image
