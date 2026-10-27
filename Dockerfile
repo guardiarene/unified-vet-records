@@ -14,7 +14,7 @@ RUN chmod +x mvnw
 # The local Maven repository is cached by BuildKit; tests are skipped because they need Docker.
 RUN --mount=type=cache,target=/root/.m2 \
     ./mvnw -B -ntp package -Dmaven.test.skip=true \
-    && cp target/psygcv-0.0.1-SNAPSHOT.jar application.jar \
+    && cp target/*.jar application.jar \
     && java -Djarmode=tools -jar application.jar extract --layers --destination extracted
 
 FROM eclipse-temurin:25.0.4.1_1-jre-noble@sha256:3f2223fe04b750aa5a8179e29b5c9a1ddf7665fc9bb08bfe11ad01d143bc13a5 AS runtime
