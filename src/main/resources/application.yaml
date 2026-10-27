@@ -8,6 +8,15 @@ spring:
 server:
   port: 8080
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+
 app:
   time-zone: America/Argentina/Cordoba
   bootstrap:
