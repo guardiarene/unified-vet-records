@@ -1,0 +1,35 @@
+# Local configuration and secrets
+application-local.yaml
+application-local.yml
+.env
+.env.*
+
+# Version control, IDE and tooling state
+.git
+.gitignore
+.gitattributes
+.idea
+.claude
+.opencode
+opencode.json
+.mcp.json
+.mcp.json.tmp
+*.iml
+
+# Build output
+target
+
+# Project documentation and plans
+README.md
+README.es.md
+CLAUDE.md
+CONVENTIONS.md
+PLAN_*.md
+INFORME_*.md
+REFACTORING-REPORT.md
+
+# Container and Compose files (not needed inside the image)
+Dockerfile
+.dockerignore
+docker-compose.yml
+.env.example
