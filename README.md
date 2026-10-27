@@ -158,7 +158,8 @@ In every profile, Flyway creates and migrates the schema from
 
 - JDK 25
 - MySQL 8.4
-- Docker, to run the tests: they start a MySQL container with Testcontainers
+- Docker, to run the tests (they start a MySQL container with Testcontainers) and the Docker Compose
+  stack
 
 Maven is not required: the project includes the Maven Wrapper.
 
@@ -240,6 +241,17 @@ export ADMIN_PHONE=5551234567
 ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 
+PowerShell equivalent:
+
+```powershell
+$env:ADMIN_EMAIL = "admin@example.com"
+$env:ADMIN_PASSWORD = "change-me-123"
+$env:ADMIN_FIRST_NAME = "Ada"
+$env:ADMIN_LAST_NAME = "Admin"
+$env:ADMIN_PHONE = "5551234567"
+.\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=dev"
+```
+
 Behavior:
 
 - **No variable defined** (the normal case in tests, CI and development): the bootstrap does
@@ -256,6 +268,45 @@ Security recommendations once the administrator exists:
 1. Change the administrator's password from the user management pages.
 2. Remove `ADMIN_PASSWORD` from the environment.
 
+### Run with Docker Compose
+
+`docker-compose.yml` runs the application with the `prod` profile and a MySQL 8.4 container. Both
+images are pinned by tag and digest; the database uses a named volume and is not published to the
+host. Ports are published only on `127.0.0.1`, both services have a memory limit and a healthcheck,
+and the application container runs as a non-root user with `no-new-privileges` and all capabilities
+dropped.
+
+1. **Create the environment file** from the versioned example:
+   ```bash
+   cp .env.example .env
+   ```
+   ```powershell
+   Copy-Item .env.example .env
+   ```
+   `MYSQL_DATABASE`, `MYSQL_USER`, `MYSQL_PASSWORD` and `MYSQL_ROOT_PASSWORD` are **required**: if
+   any is missing or empty, Compose stops with an error that names it and points to `.env`. The five
+   `ADMIN_*` variables are **optional**: leave them empty to start without an initial administrator,
+   or fill all five to create it (see [Initial administrator](#initial-administrator)).
+
+2. **Start the stack:**
+   ```bash
+   docker compose up --build
+   ```
+   MySQL becomes healthy first; then the application applies the Flyway migrations and becomes
+   healthy.
+
+3. The application is available at [http://localhost:8080](http://localhost:8080) and its health
+   endpoint at [http://localhost:8080/actuator/health](http://localhost:8080/actuator/health). The
+   health endpoint needs no authentication and does not show details.
+
+4. **Stop the stack:**
+   ```bash
+   docker compose down
+   ```
+   `docker compose down -v` also removes the named volume: **it deletes all data**.
+
+The profile can be changed with `SPRING_PROFILES_ACTIVE` in `.env`.
+
 ---
 
 ## Roadmap
@@ -265,7 +316,6 @@ Security recommendations once the administrator exists:
 - Owner confirmation for appointments created by a clinic, before they grant access to the
   medical record
 - Broader automated test coverage (service, repository and web layers)
-- Containerization (Docker and Docker Compose)
 - A continuous delivery pipeline
 - Cloud deployment with containers
 

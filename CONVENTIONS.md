@@ -717,6 +717,42 @@ No hardcoded credentials in any profile. Never modify `application-prod.yaml` un
 
 ---
 
+## Docker
+
+- **Images are pinned by full version tag and digest** (`image:tag@sha256:...`): Eclipse Temurin 25
+  (JDK for the build, JRE for the runtime) and MySQL 8.4. Dependabot keeps the `docker` and
+  `docker-compose` ecosystems updated.
+- **The application image is multi-stage.** The build stage copies only `pom.xml`, `.mvn/`, `mvnw`
+  and `src/` — never `COPY . .` — runs `./mvnw -B -ntp package -Dmaven.test.skip=true` and caches the
+  Maven repository with a BuildKit cache mount. Tests need Docker and run in the CI, not in the image
+  build.
+- **The runtime is a JRE**, not a JDK. The jar is extracted with Spring Boot's `tools` jarmode and
+  copied in layers; `ENTRYPOINT` uses the exec form.
+- **The container runs as a non-root user.** Files under `/application` stay owned by root and
+  read-only for that user: the application never modifies its own code. If another owner is ever
+  needed, use `COPY --chown`; never `RUN chown` over application files.
+- **The heap is sized from the container limit** with
+  `JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=75`; each environment can override it.
+- **No secret or local file enters the image.** `.dockerignore` excludes `application-local.*`,
+  `.env*`, `.git`, `target/`, the IDE and tooling directories and the project plans; `COPY` is always
+  explicit.
+- **Compose runs the application with the `prod` profile** (`SPRING_PROFILES_ACTIVE` from `.env`).
+  The four MySQL variables are required and fail fast with `${VAR:?message}`; the five `ADMIN_*`
+  variables are optional and all-or-none.
+- **Compose publishes ports only on `127.0.0.1`**, sets a memory limit for both services and runs the
+  application with `no-new-privileges` and `cap_drop: ALL`. The database port is never published.
+- **Healthchecks:** MySQL uses `mysqladmin ping` over TCP; the application queries
+  `/actuator/health` with bash and `/dev/tcp`, because the JRE image has no `curl` or `wget` and none
+  is installed, to keep the image small.
+- **Actuator has two layers of protection.** `management.endpoints.web.exposure.include: health`
+  exposes only `health` (with `show-details: never`), and `SecurityConfig` permits
+  `GET /actuator/health` while denying `/actuator/**` to everyone, including administrators. An
+  endpoint added to the exposure by mistake therefore does not become public.
+- **Graceful shutdown is Spring Boot's default**; Docker's stop grace period (40 s) is above the
+  30 s Spring waits per shutdown phase.
+
+---
+
 ## Application Bootstrap
 
 Startup data that cannot be created through the web UI (currently only the initial administrator)
