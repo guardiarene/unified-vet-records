@@ -40,6 +40,9 @@ updates:
     commit-message:
       prefix: "chore(deps)"
     open-pull-requests-limit: 5
+    ignore:
+      - dependency-name: "eclipse-temurin"
+        update-types: [ "version-update:semver-major" ]
 
   - package-ecosystem: "docker-compose"
     directory: "/"
@@ -50,3 +53,6 @@ updates:
     commit-message:
       prefix: "chore(deps)"
     open-pull-requests-limit: 5
+    ignore:
+      - dependency-name: "mysql"
+        update-types: [ "version-update:semver-major" ]
