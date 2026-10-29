@@ -7,7 +7,7 @@ One medical record per pet, shared by every clinic on the platform.
 [![CI](https://github.com/guardiarene/unified-vet-records/actions/workflows/ci.yml/badge.svg)](https://github.com/guardiarene/unified-vet-records/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/guardiarene/unified-vet-records/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/guardiarene/unified-vet-records/actions/workflows/github-code-scanning/codeql)
 ![Java](https://img.shields.io/badge/Java-25-orange?logo=openjdk)
-![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.0.5-6DB33F?logo=springboot)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.1.1-6DB33F?logo=springboot)
 ![MySQL](https://img.shields.io/badge/MySQL-8-4479A1?logo=mysql)
 ![Thymeleaf](https://img.shields.io/badge/Thymeleaf-005F0F?logo=thymeleaf)
 
