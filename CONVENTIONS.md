@@ -606,8 +606,11 @@ the URL rule and the `@PreAuthorize` in the service.
 - `canManageMedicalService` returns `true` only for an administrator or a veterinarian whose own
   or work clinic owns the service — `CUSTOMER` and `RECEPTIONIST` are rejected.
 - For pets, medical records and visits, **any appointment at the veterinarian's clinic grants the
-  veterinarian access — including a cancelled one. This is intentional**, not an oversight: a
-  veterinarian who has ever had the pet booked at their clinic keeps clinical read access.
+  veterinarian access — including a cancelled one. This rule is transitory**: a veterinarian who has
+  ever had the pet booked at their clinic keeps clinical read access. Today a clinic can create
+  appointments without the owner's intervention, which would let it fabricate this access; it is
+  planned that clinic-created appointments require the owner's confirmation before granting access
+  (as the README roadmap indicates).
 - `RECEPTIONIST` has no access to medical records or visits: `canAccessMedicalRecord` and
   `canAccessVisit` return `false` for that role, in addition to the URL rules.
 - `canModifyMedicalRecord` (general observations) follows the clinic rule above.
