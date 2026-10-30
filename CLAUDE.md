@@ -52,7 +52,8 @@ splits unquoted arguments at the first dot (`.\mvnw.cmd spring-boot:run "-Dsprin
 7. Create service interface and implementation in `<domain>/service/`
 8. Create controller in `<domain>/controller/` using DTOs with `@Valid`
 9. Add domain-specific exceptions in `exception/` if needed
-10. Add a new Flyway migration in `src/main/resources/db/migration/` (`V{n}__description.sql`)
+10. Add a new Flyway migration in `src/main/resources/db/migration/` (`V{n}__description.sql`);
+    `SchemaDriftTest` verifies that it matches the entity
 11. Write tests — run `./mvnw clean verify`
 
 ### Fixing a Bug
