@@ -678,7 +678,8 @@ Services must enforce invariants (e.g., forced roles) regardless of input.
 - Location: `src/main/resources/db/migration/`
 - Every schema change is a new migration named `V{n}__description.sql` (`V2__add_pet_microchip.sql`)
 - Never modify a migration that has already been applied — create a new one
-- Migrations contain schema only: no data
+- Migrations contain no application or seed data; transforming existing rows is allowed when a
+  schema change requires it (for example, a backfill before adding `NOT NULL`)
 - Constraint names are readable: `uk_<table>_<column>` for unique constraints and
   `fk_<table>_<column>` for foreign keys
 - `V1__baseline.sql` was generated from the entity model with Hibernate's schema-generation scripts
@@ -690,6 +691,10 @@ Services must enforce invariants (e.g., forced roles) regardless of input.
   of the same family (for example, `varchar` and `TEXT`) are considered compatible, and it does not
   compare length, nullability, uniqueness, foreign keys or enum values. Any of those changes in an
   entity still requires a migration
+- `SchemaDriftTest` compares the migrated schema with the one Hibernate generates from the entities,
+  so it detects a missing or divergent migration, including what `validate` does not see: length,
+  nullability, uniqueness, foreign keys and enum values. After a Hibernate upgrade it may fail
+  because the generator changed: fix it with a new migration, never by editing an applied one
 - Adding, removing or renaming a constant of a persisted enum requires a migration that modifies the
   column: Hibernate maps `@Enumerated(EnumType.STRING)` to a native MySQL `enum(...)` column, and
   `ddl-auto: validate` does not detect the difference
