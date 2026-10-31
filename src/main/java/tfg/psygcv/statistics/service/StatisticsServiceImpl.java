@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tfg.psygcv.appointment.repository.AppointmentStatisticsRepository;
@@ -17,6 +18,7 @@ import tfg.psygcv.exception.domain.BusinessRuleException;
 import tfg.psygcv.medical.visit.repository.DiagnosticStatisticsRepository;
 import tfg.psygcv.medical.visit.repository.TreatmentStatisticsRepository;
 
+@Slf4j
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 @Service
@@ -36,7 +38,15 @@ public class StatisticsServiceImpl implements StatisticsService {
     List<String> problems =
         diagnosticStatisticsRepository.getFrequentProblemsByClinicAndDate(
             clinic.getId(), startDate, endDate);
-    return processProblems(problems);
+    Map<String, Long> result = processProblems(problems);
+    log.debug(
+        "Report generated [type=common-diseases, clinicId={}, "
+            + "startDate={}, endDate={}, results={}]",
+        clinic.getId(),
+        startDate,
+        endDate,
+        result.size());
+    return result;
   }
 
   @Override
@@ -48,7 +58,15 @@ public class StatisticsServiceImpl implements StatisticsService {
     List<String> treatments =
         treatmentStatisticsRepository.getFrequentTreatmentsByClinicAndDate(
             clinic.getId(), startDate, endDate);
-    return processTreatments(treatments);
+    Map<String, Long> result = processTreatments(treatments);
+    log.debug(
+        "Report generated [type=frequent-treatments, clinicId={}, "
+            + "startDate={}, endDate={}, results={}]",
+        clinic.getId(),
+        startDate,
+        endDate,
+        result.size());
+    return result;
   }
 
   @Override
@@ -57,15 +75,24 @@ public class StatisticsServiceImpl implements StatisticsService {
     statisticsValidator.validateDateRange(startDate, endDate);
     statisticsValidator.validateUserId(userId);
     VeterinaryClinic clinic = getClinic(userId);
-    return appointmentStatisticsRepository
-        .countAppointmentsByDate(clinic.getId(), startDate, endDate)
-        .stream()
-        .collect(
-            Collectors.toMap(
-                tuple -> (LocalDate) tuple[0],
-                tuple -> (Long) tuple[1],
-                (v1, v2) -> v1,
-                TreeMap::new));
+    Map<LocalDate, Long> result =
+        appointmentStatisticsRepository
+            .countAppointmentsByDate(clinic.getId(), startDate, endDate)
+            .stream()
+            .collect(
+                Collectors.toMap(
+                    tuple -> (LocalDate) tuple[0],
+                    tuple -> (Long) tuple[1],
+                    (v1, v2) -> v1,
+                    TreeMap::new));
+    log.debug(
+        "Report generated [type=appointments-by-date, clinicId={}, "
+            + "startDate={}, endDate={}, results={}]",
+        clinic.getId(),
+        startDate,
+        endDate,
+        result.size());
+    return result;
   }
 
   @Override
@@ -74,15 +101,24 @@ public class StatisticsServiceImpl implements StatisticsService {
     statisticsValidator.validateDateRange(startDate, endDate);
     statisticsValidator.validateUserId(userId);
     VeterinaryClinic clinic = getClinic(userId);
-    return appointmentStatisticsRepository
-        .countRequestedServices(clinic.getId(), startDate, endDate)
-        .stream()
-        .collect(
-            Collectors.toMap(
-                tuple -> (String) tuple[0],
-                tuple -> (Long) tuple[1],
-                (v1, v2) -> v1,
-                LinkedHashMap::new));
+    Map<String, Long> result =
+        appointmentStatisticsRepository
+            .countRequestedServices(clinic.getId(), startDate, endDate)
+            .stream()
+            .collect(
+                Collectors.toMap(
+                    tuple -> (String) tuple[0],
+                    tuple -> (Long) tuple[1],
+                    (v1, v2) -> v1,
+                    LinkedHashMap::new));
+    log.debug(
+        "Report generated [type=requested-services, clinicId={}, "
+            + "startDate={}, endDate={}, results={}]",
+        clinic.getId(),
+        startDate,
+        endDate,
+        result.size());
+    return result;
   }
 
   private VeterinaryClinic getClinic(Long userId) {
