@@ -647,6 +647,19 @@ Services must enforce invariants (e.g., forced roles) regardless of input.
     - `WARN`: recoverable issues (duplicate email attempt, invalid state transition)
     - `ERROR`: unexpected failures (unhandled exceptions, external service failures)
 - Never log: passwords, tokens, personal data, full stack traces at INFO level
+- Email is never logged in full: use `tfg.psygcv.shared.logging.LogSanitizer.maskEmail` (keeps the
+  first character of the local part and the domain, e.g. `j***@dominio.com`) or replace it with the
+  user ID. A value with no `@` is masked in full, since it may be a password typed by mistake; so
+  is a value whose domain contains anything other than letters, digits, dots and hyphens, so text
+  injected after the `@` never reaches the log.
+- Any user-supplied value that reaches a log must be passed through
+  `LogSanitizer.sanitize`, which strips control characters (including `\r` and `\n`) so a value
+  cannot forge extra log lines.
+- Do not reveal whether an email is registered: a failed login always shows the same redirect and
+  the same generic message, regardless of whether the email exists. The failure handler may log the
+  masked email and the simple name of the exception class.
+- Login events: successful login logs `INFO` with the user ID and role (no email); failed login
+  logs `WARN` with the masked email and the reason (exception simple name).
 
 ---
 
