@@ -86,7 +86,7 @@ public class UserServiceImpl implements UserDetailsService, UserService {
     userValidator.validateEmail(email);
     return userRepository
         .findByEmailAndActiveTrue(email)
-        .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
+        .orElseThrow(() -> new UsernameNotFoundException("User not found."));
   }
 
   @Override
