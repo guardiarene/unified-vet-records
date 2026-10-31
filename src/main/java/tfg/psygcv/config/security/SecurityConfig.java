@@ -19,6 +19,7 @@ import org.springframework.security.web.SecurityFilterChain;
 public class SecurityConfig {
 
   private final CustomAuthenticationSuccessHandler customAuthenticationSuccessHandler;
+  private final CustomAuthenticationFailureHandler customAuthenticationFailureHandler;
 
   @Bean
   public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) {
@@ -85,7 +86,7 @@ public class SecurityConfig {
             form ->
                 form.loginPage("/users/login")
                     .successHandler(customAuthenticationSuccessHandler)
-                    .failureUrl("/users/login?error=true")
+                    .failureHandler(customAuthenticationFailureHandler)
                     .permitAll())
         .logout(
             logout ->
