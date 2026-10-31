@@ -16,6 +16,7 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 import tfg.psygcv.exception.domain.BusinessRuleException;
 import tfg.psygcv.exception.domain.ResourceNotFoundException;
 import tfg.psygcv.exception.domain.UnauthorizedClinicAccessException;
+import tfg.psygcv.shared.logging.LogSanitizer;
 
 @Slf4j
 @ControllerAdvice
@@ -29,11 +30,12 @@ public class GlobalExceptionHandler {
       RedirectAttributes ra) {
     if (isPost(request)) {
       log.warn("Resource not found on POST [path={}]: {}", request.getRequestURI(),
-          ex.getMessage());
+          LogSanitizer.sanitize(ex.getMessage()));
       ra.addFlashAttribute("error", ex.getMessage());
       return "redirect:" + referer(request);
     }
-    log.warn("Resource not found [path={}]: {}", request.getRequestURI(), ex.getMessage());
+    log.warn("Resource not found [path={}]: {}", request.getRequestURI(),
+        LogSanitizer.sanitize(ex.getMessage()));
     response.setStatus(HttpStatus.NOT_FOUND.value());
     return "error/404";
   }
@@ -41,7 +43,8 @@ public class GlobalExceptionHandler {
   @ExceptionHandler({UnauthorizedClinicAccessException.class, AccessDeniedException.class})
   @ResponseStatus(HttpStatus.FORBIDDEN)
   public String handleAccessDenied(RuntimeException ex, HttpServletRequest request) {
-    log.warn("Access denied [path={}]: {}", request.getRequestURI(), ex.getMessage());
+    log.warn("Access denied [path={}]: {}", request.getRequestURI(),
+        LogSanitizer.sanitize(ex.getMessage()));
     return "error/access_denied";
   }
 
@@ -52,7 +55,8 @@ public class GlobalExceptionHandler {
       HttpServletResponse response,
       Model model,
       RedirectAttributes ra) {
-    log.warn("Business rule violation [path={}]: {}", request.getRequestURI(), ex.getMessage());
+    log.warn("Business rule violation [path={}]: {}", request.getRequestURI(),
+        LogSanitizer.sanitize(ex.getMessage()));
     if (isPost(request)) {
       ra.addFlashAttribute("error", ex.getMessage());
       return "redirect:" + referer(request);
@@ -65,7 +69,8 @@ public class GlobalExceptionHandler {
   @ExceptionHandler({NoResourceFoundException.class, MethodArgumentTypeMismatchException.class})
   @ResponseStatus(HttpStatus.NOT_FOUND)
   public String handleNotFound(Exception ex, HttpServletRequest request) {
-    log.warn("No resource found [path={}]: {}", request.getRequestURI(), ex.getMessage());
+    log.warn("No resource found [path={}]: {}", request.getRequestURI(),
+        LogSanitizer.sanitize(ex.getMessage()));
     return "error/404";
   }
 
@@ -78,7 +83,7 @@ public class GlobalExceptionHandler {
         correlationId,
         request.getRequestURI(),
         request.getMethod(),
-        ex.getMessage(),
+        LogSanitizer.sanitize(ex.getMessage()),
         ex);
     model.addAttribute("correlationId", correlationId);
     return "error/500";

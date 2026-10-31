@@ -15,6 +15,7 @@ import tfg.psygcv.config.security.AuthenticatedUser;
 import tfg.psygcv.exception.domain.BusinessRuleException;
 import tfg.psygcv.exception.domain.DuplicateEmailException;
 import tfg.psygcv.exception.domain.ResourceNotFoundException;
+import tfg.psygcv.shared.logging.LogSanitizer;
 import tfg.psygcv.user.command.CreateAdminUserCommand;
 import tfg.psygcv.user.command.CreateInitialAdministratorCommand;
 import tfg.psygcv.user.command.CreateStaffCommand;
@@ -40,9 +41,16 @@ public class UserServiceImpl implements UserDetailsService, UserService {
   @Transactional(readOnly = true)
   public @NonNull UserDetails loadUserByUsername(@NonNull String email)
       throws UsernameNotFoundException {
-    User user = findByEmail(email);
+    User user;
+    try {
+      user = findByEmail(email);
+    } catch (BusinessRuleException ex) {
+      // An invalid email format cannot match any account: report it as a missing user, so
+      // Spring Security answers exactly as it does for an unregistered email.
+      throw new UsernameNotFoundException("User not found.");
+    }
     if (user == null) {
-      throw new UsernameNotFoundException("User not found with email: " + email);
+      throw new UsernameNotFoundException("User not found.");
     }
     return AuthenticatedUser.from(user);
   }
@@ -86,9 +94,10 @@ public class UserServiceImpl implements UserDetailsService, UserService {
   public User save(User user) {
     userValidator.validateForCreation(user);
     if (userRepository.findByEmailAndActiveTrue(user.getEmail()).isPresent()) {
-      log.warn("Duplicate email registration attempt [email={}]", user.getEmail());
-      throw new DuplicateEmailException(
-          "A user with this email already exists: " + user.getEmail());
+      log.warn(
+          "Duplicate email registration attempt [email={}]",
+          LogSanitizer.maskEmail(user.getEmail()));
+      throw new DuplicateEmailException("A user with this email already exists.");
     }
     encodePassword(user);
     return userRepository.save(user);
