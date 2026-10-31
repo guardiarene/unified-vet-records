@@ -22,6 +22,8 @@ public class TestcontainersConfiguration {
   @Bean
   @ServiceConnection
   MySQLContainer mysqlContainer() {
-    return new MySQLContainer(MYSQL_IMAGE);
+    // SchemaDriftTest connects as root through the mapped port to create its reference
+    // database. The official image already creates root@'%'; this makes it explicit.
+    return new MySQLContainer(MYSQL_IMAGE).withEnv("MYSQL_ROOT_HOST", "%");
   }
 }
