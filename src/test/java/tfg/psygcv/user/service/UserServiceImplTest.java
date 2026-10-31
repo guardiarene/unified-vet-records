@@ -17,6 +17,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import tfg.psygcv.exception.domain.BusinessRuleException;
 import tfg.psygcv.support.AuthTestFactory;
@@ -162,6 +163,15 @@ class UserServiceImplTest {
     assertThat(admin.getActive()).isTrue();
     verify(userRepository).save(admin);
     verify(userRepository, never()).countByRoleAndActiveTrue(any(Role.class));
+  }
+
+  @Test
+  void should_throwUsernameNotFoundException_when_loginEmailHasInvalidFormat() {
+    assertThatThrownBy(() -> userService.loadUserByUsername("no-es-un-email"))
+        .isInstanceOf(UsernameNotFoundException.class)
+        .hasMessage("User not found.");
+
+    verifyNoInteractions(userRepository);
   }
 
   @Test
