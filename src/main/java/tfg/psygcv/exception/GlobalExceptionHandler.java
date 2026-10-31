@@ -29,12 +29,12 @@ public class GlobalExceptionHandler {
       HttpServletResponse response,
       RedirectAttributes ra) {
     if (isPost(request)) {
-      log.warn("Resource not found on POST [path={}]: {}", request.getRequestURI(),
+      log.warn("Resource not found on POST [path={}]: {}", path(request),
           LogSanitizer.sanitize(ex.getMessage()));
       ra.addFlashAttribute("error", ex.getMessage());
       return "redirect:" + referer(request);
     }
-    log.warn("Resource not found [path={}]: {}", request.getRequestURI(),
+    log.warn("Resource not found [path={}]: {}", path(request),
         LogSanitizer.sanitize(ex.getMessage()));
     response.setStatus(HttpStatus.NOT_FOUND.value());
     return "error/404";
@@ -43,7 +43,7 @@ public class GlobalExceptionHandler {
   @ExceptionHandler({UnauthorizedClinicAccessException.class, AccessDeniedException.class})
   @ResponseStatus(HttpStatus.FORBIDDEN)
   public String handleAccessDenied(RuntimeException ex, HttpServletRequest request) {
-    log.warn("Access denied [path={}]: {}", request.getRequestURI(),
+    log.warn("Access denied [path={}]: {}", path(request),
         LogSanitizer.sanitize(ex.getMessage()));
     return "error/access_denied";
   }
@@ -55,7 +55,7 @@ public class GlobalExceptionHandler {
       HttpServletResponse response,
       Model model,
       RedirectAttributes ra) {
-    log.warn("Business rule violation [path={}]: {}", request.getRequestURI(),
+    log.warn("Business rule violation [path={}]: {}", path(request),
         LogSanitizer.sanitize(ex.getMessage()));
     if (isPost(request)) {
       ra.addFlashAttribute("error", ex.getMessage());
@@ -66,11 +66,23 @@ public class GlobalExceptionHandler {
     return "error/400";
   }
 
-  @ExceptionHandler({NoResourceFoundException.class, MethodArgumentTypeMismatchException.class})
+  @ExceptionHandler(NoResourceFoundException.class)
   @ResponseStatus(HttpStatus.NOT_FOUND)
-  public String handleNotFound(Exception ex, HttpServletRequest request) {
-    log.warn("No resource found [path={}]: {}", request.getRequestURI(),
+  public String handleNoResource(NoResourceFoundException ex, HttpServletRequest request) {
+    log.warn("No resource found [path={}]: {}", path(request),
         LogSanitizer.sanitize(ex.getMessage()));
+    return "error/404";
+  }
+
+  @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+  @ResponseStatus(HttpStatus.NOT_FOUND)
+  public String handleTypeMismatch(
+      MethodArgumentTypeMismatchException ex, HttpServletRequest request) {
+    Class<?> requiredType = ex.getRequiredType();
+    log.warn("Argument type mismatch [path={}, parameter={}, expectedType={}]",
+        path(request),
+        LogSanitizer.sanitize(ex.getName()),
+        requiredType != null ? requiredType.getSimpleName() : "unknown");
     return "error/404";
   }
 
@@ -81,12 +93,16 @@ public class GlobalExceptionHandler {
     log.error(
         "Unexpected error [correlationId={}, path={}, method={}]: {}",
         correlationId,
-        request.getRequestURI(),
-        request.getMethod(),
+        path(request),
+        LogSanitizer.sanitize(request.getMethod()),
         LogSanitizer.sanitize(ex.getMessage()),
         ex);
     model.addAttribute("correlationId", correlationId);
     return "error/500";
+  }
+
+  private String path(HttpServletRequest request) {
+    return LogSanitizer.sanitize(request.getRequestURI());
   }
 
   private boolean isPost(HttpServletRequest request) {
