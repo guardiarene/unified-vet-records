@@ -5,6 +5,14 @@ spring:
   jpa:
     open-in-view: false
 
+  messages:
+    basename: messages
+    fallback-to-system-locale: false
+
+  web:
+    locale: es
+    locale-resolver: fixed
+
 server:
   port: 8080
 
