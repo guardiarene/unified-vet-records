@@ -11,6 +11,7 @@ import tfg.psygcv.appointment.command.ScheduleAppointmentCommand;
 import tfg.psygcv.appointment.entity.Appointment;
 import tfg.psygcv.appointment.entity.AppointmentStatus;
 import tfg.psygcv.clinic.entity.VeterinaryClinic;
+import tfg.psygcv.exception.MessageKeys;
 import tfg.psygcv.exception.domain.BusinessRuleException;
 import tfg.psygcv.pet.entity.Pet;
 import tfg.psygcv.shared.validation.BaseValidator;
@@ -28,7 +29,8 @@ public class AppointmentValidator extends BaseValidator {
       LocalDate date, Long petId, Long serviceId, Long clinicId, Long clientId) {
     validateNotNull(date, "Appointment date cannot be null");
     if (date.isBefore(LocalDate.now(clock))) {
-      throw new BusinessRuleException("Appointment date cannot be in the past");
+      throw new BusinessRuleException(
+          MessageKeys.APPOINTMENT_DATE_PAST, "Appointment date cannot be in the past");
     }
     validateId(petId);
     validateId(serviceId);
@@ -41,7 +43,8 @@ public class AppointmentValidator extends BaseValidator {
     validateNotNull(command, "Schedule command cannot be null");
     validateNotNull(command.getDate(), "Appointment date is required");
     if (command.getDate().isBefore(LocalDate.now(clock))) {
-      throw new BusinessRuleException("Appointment date cannot be in the past");
+      throw new BusinessRuleException(
+          MessageKeys.APPOINTMENT_DATE_PAST, "Appointment date cannot be in the past");
     }
     validateNotNull(command.getTime(), "Appointment time is required");
     validateId(command.getPetId());
@@ -75,7 +78,8 @@ public class AppointmentValidator extends BaseValidator {
     validateNotNull(command.getDate(), "New appointment date is required");
     validateNotNull(command.getTime(), "New appointment time is required");
     if (command.getDate().isBefore(LocalDate.now(clock))) {
-      throw new BusinessRuleException("New appointment date cannot be in the past");
+      throw new BusinessRuleException(
+          MessageKeys.APPOINTMENT_DATE_PAST, "New appointment date cannot be in the past");
     }
     validateNotNull(command.getMedicalServiceId(), "Medical service is required for rescheduling");
   }

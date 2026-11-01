@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import tfg.psygcv.appointment.repository.AppointmentQueryRepository;
 import tfg.psygcv.clinic.entity.VeterinaryClinic;
+import tfg.psygcv.exception.MessageKeys;
 import tfg.psygcv.exception.domain.BusinessRuleException;
 import tfg.psygcv.medical.visit.command.CreateVisitCommand;
 import tfg.psygcv.medical.visit.command.UpdateVisitCommand;
@@ -52,6 +53,7 @@ public class VisitValidator extends BaseValidator {
   private void validateVeterinarianClinicAccess(User veterinarian, Pet pet) {
     if (hasVeterinarianAccessToPet(veterinarian, pet)) {
       throw new BusinessRuleException(
+          MessageKeys.PET_APPOINTMENTS_NONE_IN_CLINIC,
           "Pet has no registered appointments in any of the veterinarian's clinics");
     }
   }
@@ -62,6 +64,7 @@ public class VisitValidator extends BaseValidator {
     }
     if (hasVeterinarianAccessToPet(veterinarian, pet)) {
       throw new BusinessRuleException(
+          MessageKeys.PET_APPOINTMENTS_NONE_IN_CLINIC,
           "Pet has no appointments in the veterinarian's clinics."
               + " Emergency visits can be created without a prior appointment.");
     }
@@ -72,6 +75,7 @@ public class VisitValidator extends BaseValidator {
     VeterinaryClinic workClinic = veterinarian.getWorkClinic();
     if ((veterinarianClinics == null || veterinarianClinics.isEmpty()) && workClinic == null) {
       throw new BusinessRuleException(
+          MessageKeys.USER_CLINIC_NONE,
           "The veterinarian has no registered clinics or assigned work clinic");
     }
     if (veterinarianClinics != null && !veterinarianClinics.isEmpty()) {
