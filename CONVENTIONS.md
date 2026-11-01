@@ -32,7 +32,7 @@ Each domain owns all its layers. Cross-cutting infrastructure lives in `shared/`
 | DTO        | Transfer objects for controller I/O        | Jakarta Validation annotations. No JPA annotations. No entity imports. Input DTOs in `<domain>/dto/request/`, output DTOs in `<domain>/dto/response/`.          |
 | Mapper     | DTO/Entity conversion and command building | Non-instantiable utility class. All methods `public static`. Called only from controllers. No framework dependencies.                                           |
 | Command    | Input contract for complex service ops     | Plain POJO in `<domain>/command/`. No validation annotations. No JPA annotations. Used when parameters exceed 3 or map to no single entity.                     |
-| Exception  | Domain-specific error types                | Extend `RuntimeException`. Handled exclusively by `@ControllerAdvice`.                                                                                          |
+| Exception  | Domain-specific error types                | Extend `LocalizedException` (user-facing text from a message key) or `RuntimeException`. Handled exclusively by `@ControllerAdvice`.                          |
 | Validator  | Complex business validation                | Called by services. Throws domain exceptions.                                                                                                                   |
 
 ---
@@ -152,8 +152,10 @@ tfg.psygcv
 │
 └── exception/                     # Global exception handling
     ├── GlobalExceptionHandler     #   @ControllerAdvice for all exceptions
-    └── domain/                    #   BusinessRuleException, DuplicateEmailException,
-                                   #   ResourceNotFoundException, UnauthorizedClinicAccessException
+    ├── MessageKeys                #   Keys of the user-facing messages (messages.properties)
+    └── domain/                    #   LocalizedException, BusinessRuleException,
+                                   #   DuplicateEmailException, ResourceNotFoundException,
+                                   #   UnauthorizedClinicAccessException
 ```
 
 ### Principles
@@ -183,7 +185,7 @@ it materializes in the codebase:
 | Principle                 | Application in the project                                                                                                                                                                                                                              |
 |---------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | **Single Responsibility** | Each layer has one reason to change: controllers handle HTTP, services hold business logic, repositories manage persistence, mappers convert between types, validators enforce rules.                                                                   |
-| **Open / Closed**         | Service interfaces (`XService`) define the contract; implementations (`XServiceImpl`) can be swapped or decorated without modifying callers. New domain exceptions extend `RuntimeException` without changing `GlobalExceptionHandler` logic.           |
+| **Open / Closed**         | Service interfaces (`XService`) define the contract; implementations (`XServiceImpl`) can be swapped or decorated without modifying callers. New business rules throw `BusinessRuleException` (or a subclass) with a message key, without changing `GlobalExceptionHandler` logic. |
 | **Liskov Substitution**   | `AuditableEntity` subclasses are usable wherever `AuditableEntity` is expected. `BaseValidator` subclasses honour the base contract. When overriding, never weaken preconditions or strengthen postconditions.                                          |
 | **Interface Segregation** | Repositories are split by intent (`AppointmentRepository`, `AppointmentQueryRepository`, `AppointmentStatisticsRepository`) so consumers depend only on the queries they need. Service interfaces expose only the operations relevant to their callers. |
 | **Dependency Inversion**  | Controllers depend on service interfaces, not implementations. Services never import from `dto.*` — the controller adapts between the presentation layer and the domain. Command objects decouple service input from presentation DTOs.                 |
@@ -530,14 +532,61 @@ All business errors use domain-specific exception types in `exception/domain/`. 
 
 The domain exceptions and their hierarchy:
 
-- `ResourceNotFoundException` — a mandatory lookup found nothing.
-- `BusinessRuleException` — a business rule or input precondition was violated. Base type for:
-    - `DuplicateEmailException` — registering/updating with an email already in use.
-- `UnauthorizedClinicAccessException` — access to a resource outside the user's clinic.
+- `LocalizedException` (abstract) — base of the exceptions whose message reaches the user. It
+  carries an optional message key and its arguments:
+    - `ResourceNotFoundException` — a mandatory lookup found nothing.
+    - `BusinessRuleException` — a business rule or input precondition was violated. Base type
+      for:
+        - `DuplicateEmailException` — registering/updating with an email already in use.
+- `UnauthorizedClinicAccessException` — access to a resource outside the user's clinic. It
+  extends `RuntimeException` directly: the user sees the 403 page, never its message.
 
-All extend `RuntimeException`. Validators (`BaseValidator` and its subclasses) throw
-`BusinessRuleException`; adding a new business rule does not require touching
-`GlobalExceptionHandler`.
+Validators (`BaseValidator` and its subclasses) throw `BusinessRuleException`; adding a new
+business rule does not require touching `GlobalExceptionHandler`.
+
+### User-Facing Messages
+
+**Language:** code, exception messages and logs are in English; the user sees Spanish. The
+user-facing text is never `ex.getMessage()`: it is resolved from `messages.properties` with
+`MessageSource`, while `getMessage()` keeps the English message (sanitized) for the log.
+
+- **Where:** keys are constants in `exception/MessageKeys`; texts live in
+  `src/main/resources/messages.properties` (Spanish base locale, UTF-8). The locale is fixed to
+  `es` (`spring.web.locale-resolver: fixed`) and there is no fallback to the system locale.
+- **Throwing with a key:** pass the `MessageKeys` constant first, then the English message for
+  the log, then the arguments of the text (if any). Never write a key as a string literal.
+
+```java
+throw new BusinessRuleException(
+    MessageKeys.APPOINTMENT_DATE_PAST, "Appointment date cannot be in the past");
+
+throw new BusinessRuleException(
+    MessageKeys.USER_PASSWORD_TOO_SHORT,
+    "Password must be at least " + MIN_PASSWORD_LENGTH + " characters long",
+    MIN_PASSWORD_LENGTH);
+```
+
+```properties
+appointment.date.past=La fecha del turno no puede ser anterior a hoy.
+user.password.too-short=La contraseña debe tener al menos {0} caracteres.
+```
+
+- **Key first:** when a new message for the user is needed, add the constant to `MessageKeys`
+  and the text to `messages.properties` before writing the `throw`. `MessageKeysTest` fails if a
+  constant has no non-empty text.
+- **When a key is worth it:** only for messages the user can act on (a past date, a duplicate
+  email, an invalid date range). Internal checks (invalid IDs, null commands, tampered forms,
+  missing entities) use the constructor without a key: the user sees the generic message of the
+  exception type (`error.business.generic` or `error.notfound.generic`). A key missing from
+  `messages.properties` also falls back to the generic message, never to an error page.
+- **Content:** user texts contain no IDs, class names or internal terms. IDs go only in the
+  English message for the log.
+- **Arguments:** texts with arguments (`{0}`) are formatted with `MessageFormat`, so an
+  apostrophe in them is written as `''`. Texts without arguments are used as written.
+- **Out of scope:** Thymeleaf templates and Bean Validation messages of DTOs are still written
+  in Spanish in the code; their internationalization is pending.
+- **Another language:** add `messages_<lang>.properties` and switch the resolver to
+  `accept-header`.
 
 ### Global Handler
 
@@ -550,12 +599,20 @@ its 302.
 |-----------------------------------------------------------------|---------------------------------------------|---------------------------------------|
 | `ResourceNotFoundException`                                     | flash `error` + redirect to `Referer` (302) | `error/404` view, **404**             |
 | `BusinessRuleException` (incl. `DuplicateEmailException`)        | flash `error` + redirect to `Referer` (302) | `error/400` view, **400**             |
+| `MissingServletRequestParameterException`                       | flash `error` (generic) + redirect (302)    | `error/400` view (generic), **400**   |
 | `UnauthorizedClinicAccessException`, `AccessDeniedException`     | `error/access_denied` view, **403**         | `error/access_denied` view, **403**   |
 | `NoResourceFoundException`, `MethodArgumentTypeMismatchException`| `error/404` view, **404**                   | `error/404` view, **404**             |
 | Unhandled `Exception`                                           | `error/500` view, **500**                   | `error/500` view, **500**             |
 
-- On **POST**, business/not-found errors redirect to the `Referer` (or `/`) with the message in a
-  flash attribute named `error`. This follows Post-Redirect-GET and **intentionally discards the
+- The message in the flash `error` and in the `error/400` view is the resolved user text (see
+  **User-Facing Messages**), never `ex.getMessage()`.
+- On **POST**, business/not-found errors redirect to the `Referer` with the message in a
+  flash attribute named `error`. Only the path and query of the `Referer` are used, never its
+  scheme or host, so the redirect never leaves the application. It falls back to `/` when the
+  header is missing, cannot be parsed, or its path does not start with `/` or starts with `//`
+  or `/\`. The redirect does not account for a context path yet: if the application is
+  published under a sub-path, the `Referer` path already includes the prefix and the redirect
+  would duplicate it, so the handler must strip it first. This follows Post-Redirect-GET and **intentionally discards the
   submitted form data** — the user re-enters the form. This trade-off is accepted: it keeps the
   handler uniform and avoids re-populating forms from the advice layer.
 - The destination view must render the `error` flash via the `errorAlert` fragment
@@ -646,6 +703,8 @@ Services must enforce invariants (e.g., forced roles) regardless of input.
     - `DEBUG`: technical detail (query parameters, cache hits)
     - `WARN`: recoverable issues (duplicate email attempt, invalid state transition)
     - `ERROR`: unexpected failures (unhandled exceptions, external service failures)
+- Log messages are in English. `GlobalExceptionHandler` logs `ex.getMessage()` (English, through
+  `LogSanitizer.sanitize`), never the Spanish text shown to the user
 - Never log: passwords, tokens, personal data, full stack traces at INFO level
 - Email is never logged in full: use `tfg.psygcv.shared.logging.LogSanitizer.maskEmail` (keeps the
   first character of the local part and the domain, e.g. `j***@dominio.com`) or replace it with the
