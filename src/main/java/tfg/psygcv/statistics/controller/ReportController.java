@@ -33,8 +33,8 @@ public class ReportController extends BaseController {
 
   @PostMapping("/diseases-treatments")
   public String generateDiseasesTreatmentsReport(
-      @RequestParam LocalDate startDate,
-      @RequestParam LocalDate endDate,
+      @RequestParam(required = false) LocalDate startDate,
+      @RequestParam(required = false) LocalDate endDate,
       Authentication authentication,
       Model model) {
     Long userId = getAuthenticatedUser(authentication).getId();
@@ -56,8 +56,8 @@ public class ReportController extends BaseController {
 
   @PostMapping("/appointments")
   public String generateAppointmentsReport(
-      @RequestParam LocalDate startDate,
-      @RequestParam LocalDate endDate,
+      @RequestParam(required = false) LocalDate startDate,
+      @RequestParam(required = false) LocalDate endDate,
       Authentication authentication,
       Model model) {
     Long userId = getAuthenticatedUser(authentication).getId();
