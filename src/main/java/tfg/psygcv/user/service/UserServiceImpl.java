@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tfg.psygcv.clinic.entity.VeterinaryClinic;
 import tfg.psygcv.config.security.AuthenticatedUser;
+import tfg.psygcv.exception.MessageKeys;
 import tfg.psygcv.exception.domain.BusinessRuleException;
 import tfg.psygcv.exception.domain.DuplicateEmailException;
 import tfg.psygcv.exception.domain.ResourceNotFoundException;
@@ -97,7 +98,8 @@ public class UserServiceImpl implements UserDetailsService, UserService {
       log.warn(
           "Duplicate email registration attempt [email={}]",
           LogSanitizer.maskEmail(user.getEmail()));
-      throw new DuplicateEmailException("A user with this email already exists.");
+      throw new DuplicateEmailException(
+          MessageKeys.USER_EMAIL_DUPLICATE, "A user with this email already exists.");
     }
     encodePassword(user);
     return userRepository.save(user);
@@ -160,6 +162,7 @@ public class UserServiceImpl implements UserDetailsService, UserService {
     boolean losingRole = command.getRole() != Role.SYSTEM_ADMINISTRATOR;
     if (removesLastActiveAdministrator(existingUser, deactivating, losingRole)) {
       throw new BusinessRuleException(
+          MessageKeys.USER_ADMIN_LAST_ACTIVE,
           "The last active system administrator cannot be deactivated or lose its role");
     }
     existingUser.setFirstName(command.getFirstName());
@@ -195,6 +198,7 @@ public class UserServiceImpl implements UserDetailsService, UserService {
     User user = findById(userId);
     if (removesLastActiveAdministrator(user, true, false)) {
       throw new BusinessRuleException(
+          MessageKeys.USER_ADMIN_LAST_ACTIVE,
           "The last active system administrator cannot be deactivated or lose its role");
     }
     user.setActive(false);
