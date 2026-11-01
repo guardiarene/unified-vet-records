@@ -15,9 +15,8 @@ public abstract class LocalizedException extends RuntimeException {
   private static final Object[] NO_ARGS = new Object[0];
 
   /**
-   * -- GETTER --
-   * Returns the message key for the user-facing text, or
-   * if there is none.
+   * Key of the user-facing text in {@code messages.properties}. The getter returns {@code null}
+   * when the exception has no key, and the handler then shows the generic message.
    */
   @Getter
   private final String messageKey;
